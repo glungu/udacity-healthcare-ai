@@ -3,6 +3,7 @@ import numpy as np
 import os
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
+import functools
 
 
 ####### STUDENTS FILL THIS OUT ######
@@ -78,9 +79,18 @@ def create_tf_categorical_feature_cols(categorical_col_list,
         tf_categorical_feature_column = tf.feature_column.......
 
         '''
-        tf_cat_сolumn = tf.feature_column.indicator_column(
-            tf.feature_column.categorical_column_with_vocabulary_file(c, vocab_file_path))
-        output_tf_list.append(tf_cat_сolumn)
+        num_lines = sum(1 for _ in open(vocab_file_path))
+        cat_column = tf.feature_column.categorical_column_with_vocabulary_file(c, vocab_file_path)
+
+        if num_lines > 10:
+            print(f'### {c}: #lines: {num_lines}, embedding (categorical)')
+            tf_categorical_feature_column = tf.feature_column.embedding_column(cat_column, dimension=10)
+        else:
+            print(f'### {c}: #lines: {num_lines}, indicator (categorical)')
+            tf_categorical_feature_column = tf.feature_column.indicator_column(cat_column)
+
+        output_tf_list.append(tf_categorical_feature_column)
+
     return output_tf_list
 
 #Question 8
@@ -102,12 +112,10 @@ def create_tf_numeric_feature(col, MEAN, STD, default_value=0):
     return:
         tf_numeric_feature: tf feature column representation of the input field
     '''
+    print(f'### {col}: #mean/std: {MEAN}/{STD}, numeric (normalized)')
+    normalizer = functools.partial(normalize_numeric_with_zscore, mean=MEAN, std=STD)
     tf_numeric_feature = tf.feature_column.numeric_column(
-        col,
-        shape=(1,),
-        default_value=default_value,
-        dtype=tf.dtypes.float32,
-        normalizer_fn=lambda x: normalize_numeric_with_zscore(x, MEAN, STD))
+        key=col, default_value=default_value, normalizer_fn=normalizer, dtype=tf.float64)
 
     return tf_numeric_feature
 
@@ -116,8 +124,8 @@ def get_mean_std_from_preds(diabetes_yhat):
     '''
     diabetes_yhat: TF Probability prediction object
     '''
-    m = '?'
-    s = '?'
+    m = diabetes_yhat.mean()
+    s = diabetes_yhat.stddev()
     return m, s
 
 # Question 10
@@ -128,4 +136,6 @@ def get_student_binary_prediction(df, col):
     return:
         student_binary_prediction: pandas dataframe converting input to flattened numpy array and binary labels
     '''
+    student_binary_prediction = df[col].apply(lambda x: 1 if x >= 5 else 0).values
+    print(f'### Transformed to numpy: {type(student_binary_prediction)}, shape: {student_binary_prediction.shape}')
     return student_binary_prediction
