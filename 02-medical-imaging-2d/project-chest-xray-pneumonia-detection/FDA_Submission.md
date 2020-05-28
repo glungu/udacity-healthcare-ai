@@ -10,35 +10,43 @@ X-Ray Pneumonia Detection Assistant (XR-PDA)
 
 ### 1. General Information
 
-**Intended Use Statement:** 
+**Intended Use Statement:**
+ 
 For assisting a radiologist in detection of pneumonia in x-ray images.
 
 **Indications for Use:**
-Screening x-ray images.
-Both men and women of ages 2 to 90.  
-Restricted to x-ray images with the following properties: 
+
+Screening of x-ray images. 
+
+Patient population:
+* Both men and women
+* Age: 2 to 90 
+
+X-Ray image properties:
 * Body part: Chest
 * Position: AP (Anterior/Posterior) or PA (Posterior/Anterior)
 * Modality: DX (Digital Radiography) 
  
 
 **Device Limitations:**
-* The model is recommended for use without following comorbid thoracic pathologies:
-    * Consolidation
-    * Edema
-    * Effusion
-    * Hernia
+
+The model is recommended for use without following comorbid thoracic pathologies:
+* Consolidation
+* Edema
+* Effusion
+* Hernia
 
 
 **Clinical Impact of Performance:**
 
-Inference can be performed on a common-purpose CPU found on desktop PCs.
-Performance has been tested on Intel(R) Xeon(R) @ 2.30GHz CPU. 
-Average inference time for a single image: ms 
+Inference can be performed on a general-purpose CPU found on most desktop PCs.
+Performance has been tested on Intel(R) Xeon(R) @ 2.30GHz CPU, 
+inference time is less than 850 milliseconds per image 
+(including file read and image data preprocessing).
 
 ### 2. Algorithm Design and Function
 
-<< Insert Algorithm Flowchart >>
+<img src="flowchart.png" alt="Flowchart" height="400"/>
 
 **DICOM Checking Steps**
 
@@ -64,6 +72,11 @@ Convolution + Pooling layers that was re-trained),
 with additional 4 blocks of 'Fully Connected + Dropout' layers.
 
 The network output is a single probability value for binary classification.
+
+Below is the CNN architecture graph:
+
+<div style="page-break-after: always;"></div>
+<img src="model_architecture.png" alt="Architecture" height="1800"/>
 
 
 ### 3. Algorithm Training
@@ -118,40 +131,42 @@ and maintains high negative predictive value.
 
 **Final Threshold and Explanation:**
 
-The maximum F1 score for the model is 0.404 and it is achieved with threshold value of 0.45..
-Comparing this value with those given in 
+The maximum F1 score for the model is 0.408 and it is achieved with threshold value of 0.431.
+Below is the comparison of F1 score with those given in 
 [CheXNet: Radiologist-Level Pneumonia Detection on Chest X-Rayswith Deep Learning](
 https://arxiv.org/pdf/1711.05225.pdf):
 
-| Person or Device | F1    | Sensitivity | Specificity | 
-|------------------|-------|-------------|-------------|
-| Radiologist 1    | 0.383 | 0.309       | 0.453   |
-| Radiologist 2    | 0.356 | 0.282       | 0.428   |
-| Radiologist 3    | 0.365 | 0.291       | 0.435   |
-| Radiologist 4    | 0.442 | 0.390       | 0.492   |
-| Radiologist Avg. | 0.387 | 0.330       | 0.442   |
-| CheXNet          | 0.435 | 0.387       | 0.481   |
-| XR-PDA Max F1    | 0.408 | 0.290       | 0.578   |
+| Person or Device | F1    |
+|------------------|-------|
+| Radiologist 1    | 0.383 |
+| Radiologist 2    | 0.356 |
+| Radiologist 3    | 0.365 |
+| Radiologist 4    | 0.442 |
+| Radiologist Avg. | 0.387 |
+| CheXNet          | 0.435 |
+| XR-PDA Max F1    | 0.408 |
  
 As we can see, this model achieves higher maximum F1 score than an average radiologist 
-in the study. State of the art neural network from the paper achieves higher F1 score, 
-but not significantly higher. We will be comparing this model with the 
-performance of human radiologists.
+in the study. State of the art neural network, as well as one radiologist from the study,
+do achieve higher F1 score, but the model's performance is comparable and in many cases 
+exceeds the performance of human radiologists (in terms of F1 score).
 
 Furthermore, since the model does not have a high precision with any meaningful recall value,
-its usefulness tends to be in its recall (and negative predictive value).
+its usefulness tends to lie in its recall (and negative predictive value).
 Therefore, it makes sense to maximize recall and NPV even at the cost of small loss in precision.
 A good threshold value that achieves that is 0.377:
 
-| Person or Device | F1    | Sensitivity | Specificity | 
-|------------------|-------|-------------|-------------|
-| Radiologist 1    | 0.383 | 0.309       | 0.453       |
-| Radiologist 2    | 0.356 | 0.282       | 0.428       |
-| Radiologist 3    | 0.365 | 0.291       | 0.435       |
-| Radiologist 4    | 0.442 | 0.390       | 0.492       |
-| Radiologist Avg. | 0.387 | 0.330       | 0.442       |
-| XR-PDA Max F1    | 0.408 | 0.290       | 0.578       |
-| XR-PDA T=0.377   | 0.404 | 0.268       | 0.441       |
+| Device           | F1    | Precision   | Sensitivity/Recall | Specificity | NPV   |
+|------------------|-------|-------------|--------------------|-------------|-------|
+| XR-PDA Max F1    | 0.408 |  0.290      |  0.689             |  0.579      | 0.856 |
+| XR-PDA T=0.377   | 0.404 |  0.268      |  0.818             |  0.441      | 0.905 |
+
+If the model predicts negative, it is correct with 90.5% probability. If the model 
+predicts positive, it is correct with 26.8% probability.
+
+Out of all negative cases the model correctly classifies 44.1%,
+out of all positive cases it correctly classifies 81.8%.
+
 
 
 ### 4. Databases
@@ -169,13 +184,14 @@ Example images:
 
 Validation dataset consisted of 1430 chest xray images, with 20/80 split between 
 positive and negative cases, which more reflects the occurence of pneumonia 
-in real world images.
+in the real world.
    
 
 ### 5. Ground Truth
 
-The data was coming from a larger xray dataset, with disease labels 
-that were created using Natural Language Processing (NLP) to mine the associated 
+The data is taken from a larger xray 
+[dataset](https://www.kaggle.com/nih-chest-xrays/data), with disease labels 
+created using Natural Language Processing (NLP) mining the associated 
 radiological reports. The labels include 14 common thoracic pathologies 
 (Pneumonia being one of them): 
 - Atelectasis 
@@ -207,19 +223,18 @@ on the labeling process can be found [here](https://arxiv.org/abs/1705.02315).
 The following population subset is to be used for the FDA Validation Dataset:
 * Both men and women 
 * Age 2 to 90 
-* Without known comorbid lung conditions listed above
+* Without known comorbid thoracic pathologies listed above
 
 **Ground Truth Acquisition Methodology:**
 
-Ground truth for the FDA Validation Dataset should be obtained a from practicing radiologist.  
+Ground truth for the FDA Validation Dataset should be obtained from a practicing radiologist.  
 
 **Algorithm Performance Standard:**
 
-The algorithm can be used on the regular PC with general purpose CPU.
-On the Intel(R) Xeon(R) @ 2.30GHz CPU machine performance is as follows:
+The algorithm's performance measured on Intel(R) Xeon(R) @ 2.30GHz CPU: 
 
 * Average image pre-processing time: 29 ms, max: 111 ms
-* Average inference time: 615 milliseconds, max: 734 ms
+* Average CNN inference time: 615 milliseconds, max: 734 ms
 
 So, total inference time does not exceed 850 milliseconds on Intel Xeon CPU. 
-The same or similar general-purpose CPU is recommended.
+Similar (or higher performance) CPU is recommended.
