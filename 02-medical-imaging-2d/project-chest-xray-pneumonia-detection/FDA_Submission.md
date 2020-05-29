@@ -36,13 +36,45 @@ The model is recommended for use without following comorbid thoracic pathologies
 * Effusion
 * Hernia
 
+This can be explained by the fact that X-Ray images containing four conditions
+mentioned above have similar but significantly different distribution 
+that that of Pneumonia X-Rays:
+
+**Pneumonia:**
+
+<img src="distrib_pneumonia.png" alt="Distr not recommended" height="150" width="150"/>
+
+**Not recommended:**
+
+<img src="distrib_other.png" alt="Distr pneumonia" height="150" width="600"/>
+
+**Hardware Requirements:**
+
+In terms of computer hardware requirements, the algorithm's performance was 
+measured on Intel(R) Xeon(R) @ 2.30GHz CPU: 
+
+* Average image pre-processing time: 29 ms, max: 111 ms
+* Average CNN inference time: 615 milliseconds, max: 734 ms
+
+So, total inference time does not exceed 850 milliseconds on Intel Xeon CPU. 
+Similar (or higher performance) CPU is recommended.
+
 
 **Clinical Impact of Performance:**
 
-Inference can be performed on a general-purpose CPU found on most desktop PCs.
-Performance has been tested on Intel(R) Xeon(R) @ 2.30GHz CPU, 
-inference time is less than 850 milliseconds per image 
-(including file read and image data preprocessing).
+In terms of predictive value:
+* If the model predicts negative, it is correct with 90.5% probability 
+* If the model predicts positive, it is correct with 26.8% probability
+
+Therefore, the algorithm is recommended for assisting a radiologist screening 
+those images that most probably do not contain Pneumonia, to prioritize his/her 
+time and attention to those that potentially do. This should lead to those 
+that require medical attention getting it much faster.
+
+It is also worth mentioning that when algorithm predicts negative is can 
+still be wrong with 9.5% probability. So, those cases predicted negative
+should still be reviewed by the radiologist. 
+
 
 ### 2. Algorithm Design and Function
 
@@ -136,17 +168,24 @@ Below is the comparison of F1 score with those given in
 [CheXNet: Radiologist-Level Pneumonia Detection on Chest X-Rayswith Deep Learning](
 https://arxiv.org/pdf/1711.05225.pdf):
 
-| Person or Device | F1    |
-|------------------|-------|
-| Radiologist 1    | 0.383 |
-| Radiologist 2    | 0.356 |
-| Radiologist 3    | 0.365 |
-| Radiologist 4    | 0.442 |
-| Radiologist Avg. | 0.387 |
-| CheXNet          | 0.435 |
-| XR-PDA Max F1    | 0.408 |
+| Person or Device | F1    | 95% CI 2sigma| 68% CI 1sigma|
+|------------------|-------|--------------|--------------|
+| Radiologist 1    | 0.383 |(0.309, 0.453)|(0.345, 0.417)|
+| Radiologist 2    | 0.356 |(0.282, 0.428)|(0.319, 0.392)|
+| Radiologist 3    | 0.365 |(0.291, 0.435)|(0.327, 0.399)|
+| Radiologist 4    | 0.442 |(0.390, 0.492)|(0.416, 0.467)|
+| Radiologist Avg. | 0.387 |(0.330, 0.442)|(0.358, 0.414)|
+| CheXNet          | 0.435 |(0.387, 0.481)|(0.411, 0.458)|
+| XR-PDA Max F1    | 0.408 |              |              |
+
+We do not calculate here the models 95% confidence interval for simplicity, 
+and compare models statistical significance by assuming normal distribution 
+and simply comparing the models F1 score to 1-sigma CIs calculated from 2-sigma ones. 
+This model's score is higher and outside of 68% (1-sigma) CI for 
+two radiologists out of four, which points to 'some statistical significance' of the given model.
  
-As we can see, this model achieves higher maximum F1 score than an average radiologist 
+Comparing the F1 scores themselves, this model achieves higher 
+maximum F1 score than an average radiologist 
 in the study. State of the art neural network, as well as one radiologist from the study,
 do achieve higher F1 score, but the model's performance is comparable and in many cases 
 exceeds the performance of human radiologists (in terms of F1 score).
@@ -227,14 +266,33 @@ The following population subset is to be used for the FDA Validation Dataset:
 
 **Ground Truth Acquisition Methodology:**
 
-Ground truth for the FDA Validation Dataset should be obtained from a practicing radiologist.  
+The golden standard for obtaining ground truth would be to perform 
+one of these tests (see this [Mayo Clinic Link](https://www.mayoclinic.org/diseases-conditions/pneumonia/diagnosis-treatment/drc-20354210)):
+* Sputum test
+* Pleural fluid culture
+
+Yet, those tests are quite expensive, and in most cases diagnosis is 
+concluded by the physician based on radiologist's analysis/description.
+Since the purpose of this device is assisting the radiologist (not replacing him),
+the ground truth for the FDA Validation Dataset can be obtained as an average 
+of three practicing radiologists (as a widely used 'silver standard').
+The same method is used in the mentioned paper.  
 
 **Algorithm Performance Standard:**
 
-The algorithm's performance measured on Intel(R) Xeon(R) @ 2.30GHz CPU: 
+In terms of Clinical performance, the algorithm's performance can be
+measured by calculating F1 score against 'silver standard' ground truth as described above. 
+The algorithm's F1 score should exceed **0.387** which is an average F1 score taken over
+three human radiologists, as given in [CheXNet: Radiologist-Level Pneumonia Detection on Chest X-Rayswith Deep Learning](
+https://arxiv.org/pdf/1711.05225.pdf), where a similar method is used
+to compare device's F1 score to average F1 score over three radiologists.
 
-* Average image pre-processing time: 29 ms, max: 111 ms
-* Average CNN inference time: 615 milliseconds, max: 734 ms
+A 95% confidence interval given in the paper for average F1 score of 0.387 
+is (0.330, 0.442), so algorithm's 2.5% and 97.5% precentiles should 
+also be calculated to get 95% confidence interval. This interval, 
+when subtracted the interval above for the average, should not contain 0,
+which will indicate statistical significance of its improvement 
+of the average F1 score. The same method for assessing statistical 
+significance is presented in the above paper. 
 
-So, total inference time does not exceed 850 milliseconds on Intel Xeon CPU. 
-Similar (or higher performance) CPU is recommended.
+
