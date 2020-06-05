@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 # 1. Use pydicom's dcmread method to load the image
 
 # <YOUR CODE HERE>
-dcm = pydicom.dcmread('dicom_instance.dcm')
+dcm = pydicom.dcmread('images/dicom_instance.dcm')
 print(type(dcm), type(dcm.pixel_array))
 print(f'Modality {dcm.Modality}')
 
